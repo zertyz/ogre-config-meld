@@ -6,7 +6,7 @@ pub trait OgreRootConfig: Debug + Serialize + for<'r> Deserialize<'r> + Sized + 
 
 /// Trait to allow merging command line options into the application's configs
 pub trait CmdLineAndConfigIntegration<RootConfigType: OgreRootConfig>: clap::Parser + Debug {
-    /// Specifies the configuration file to be used when scanning.
+    /// Specifies the configuration file to be used by the application.
     /// If none is specified, use the default file, located at the same path as the executable,
     /// having the same name + the '.config.ron' extension.
     ///
