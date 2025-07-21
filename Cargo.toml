@@ -1,0 +1,36 @@
+[package]
+name = "ogre-config-meld"
+version = "0.1.0"
+edition = "2021"
+description   = "Melds configs from files, env, and CLI into a clean, validated strong typed 'effective configuration'."
+keywords      = ["configuration"]
+categories    = ["config", "command-line-interface"]
+readme        = "README.md"
+authors       = ["Luiz Silveira <zertyz@gmail.com>"]
+homepage      = "https://github.com/zertyz/ogre-config-meld"
+repository    = "https://github.com/zertyz/ogre-config-meld"
+documentation = "https://docs.rs/ogre-config-meld/"
+license       = "Unlicense"
+
+[workspace]
+
+[dependencies]
+
+tokio = { version = "1", features = ["fs"] }   # for file operations
+
+serde = { version = "1", default-features = false }
+clap = { version = "4", default-features = false, features = ["default", "derive"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+
+# supported config file formats
+ron = { version = "0.10", default-features = false, features = ["default"] }
+serde_yaml = { version = "0.9", default-features = false }
+
+# source code docs extraction
+include_dir = { version = "0.7", default-features = false }
+regex = { version = "1", default-features = false }
+once_cell = { version = "1", default-features = false, features = ["default"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }   # for file operations
+serde = { version = "1", default-features = false, features = ["derive"] }
