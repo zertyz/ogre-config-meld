@@ -15,11 +15,30 @@ pub async fn parse_cmdline_and_merge_with_loaded_configs<
 >(
     tail_docs: &str,
 ) -> Result<RootConfigType, crate::Error> {
+
+    // Provides a configuration file name if none was specified in CLI.
+    // Priority goes for any existing files in the order presented in `CONFIG_SUFFIXES`
     fn default_config_file_path() -> String {
+
+        const CONFIG_SUFFIXES: &[&str] = &[
+            ".config.ron",
+            ".config.yaml",
+        ];
         let program_name = std::env::args().next()
             .expect("Program name couldn't be retrieve from args. Please specify which configuration file to use via command line.")
             .to_owned();
-        format!("{program_name}.config.ron")
+
+        // first, try to find any existing file possibilities
+        for suffix in CONFIG_SUFFIXES {
+            let config_file_candidate = format!("{program_name}{suffix}");
+            // if it exists, return it
+            if std::path::Path::new(&config_file_candidate).exists() {
+                return config_file_candidate
+            }
+        }
+
+        // if no existing file was found, use the first in our priority list
+        format!("{program_name}{}", CONFIG_SUFFIXES[0])
     }
 
     let cmdline_options: CmdLineOptionsType = parse_cmdline_args();
