@@ -4,6 +4,7 @@ use crate::{save_to_file, CmdLineAndConfigIntegration, OgreRootConfig};
 use clap::Parser;
 use std::io;
 use std::io::Write;
+use std::path::{Path, PathBuf};
 
 /// Similarly to [parse_cmdline_args()],
 /// parse the CLI options from the program's command line args,
@@ -16,39 +17,11 @@ pub async fn parse_cmdline_and_merge_with_loaded_configs<
     tail_docs: &str,
 ) -> Result<RootConfigType, crate::Error> {
 
-    // Provides a configuration file name if none was specified in CLI.
-    // Priority goes for any existing files in the order presented in `CONFIG_SUFFIXES`
-    fn default_config_file_path() -> String {
-
-        const CONFIG_SUFFIXES: &[&str] = &[
-            ".config.ron",
-            ".config.yaml",
-        ];
-        let program_name = std::env::args().next()
-            .expect("Program name couldn't be retrieve from args. Please specify which configuration file to use via command line.")
-            .to_owned();
-
-        // first, try to find any existing file possibilities
-        for suffix in CONFIG_SUFFIXES {
-            let config_file_candidate = format!("{program_name}{suffix}");
-            // if it exists, return it
-            if std::path::Path::new(&config_file_candidate).exists() {
-                return config_file_candidate
-            }
-        }
-
-        // if no existing file was found, use the first in our priority list
-        format!("{program_name}{}", CONFIG_SUFFIXES[0])
-    }
-
     let cmdline_options: CmdLineOptionsType = parse_cmdline_args();
     let should_write_effective_config = cmdline_options.should_write_effective_config();
     let should_show_effective_config = cmdline_options.should_show_effective_config();
 
-    let config_file_path = cmdline_options
-        .config_file_path()
-        .map(String::from)
-        .unwrap_or_else(default_config_file_path);
+    let config_file_path = get_config_file_path::<CmdLineOptionsType, RootConfigType>();
     let loaded_config = super::load_or_create_default(&config_file_path, tail_docs).await?;
     let effective_config = merge_cmdline_args_with_configs(cmdline_options, loaded_config);
 
@@ -64,13 +37,13 @@ pub async fn parse_cmdline_and_merge_with_loaded_configs<
 
     if should_write_effective_config {
         let mut backup_config_file_path = config_file_path.clone();
-        backup_config_file_path.push('~');
+        backup_config_file_path.push("~");
 
         // generate the docs for the new configs
         let doc_comments = format!(
             r#"
 Rewriten from merging the previous configs & the command line options at {date_str}
-(previous configuration file backed up to '{backup_config_file_path}')
+(previous configuration file backed up to {backup_config_file_path:?})
 
 COMMAND LINE OPTIONS: {cmdline_options:#?}
 
@@ -89,7 +62,7 @@ PREVIOUS CONFIG: {loaded_config:#?}
 
         tokio::fs::rename(&config_file_path, &backup_config_file_path).await
             .map_err(|err| crate::Error::SavingConfig {
-                message: format!("Error rewriting the config file '{config_file_path}' with a new effective configuration: the file couldn't be renamed to '{backup_config_file_path}'"),
+                message: format!("Error rewriting the config file {config_file_path:?} with a new effective configuration: the file couldn't be renamed to {backup_config_file_path:?}"),
                 cause: err.into(),
             })?;
 
@@ -97,6 +70,57 @@ PREVIOUS CONFIG: {loaded_config:#?}
     }
 
     Ok(effective_config)
+}
+
+/// Determines the exact path for the configuration file to be used, taking into account:
+/// * The program's name & path
+/// * Config format CLI options
+/// * The existence or not of files at the default locations in any of the supported formats
+/// * Overrides on config file location via command line interface
+/// * The default config file, if none exists and no command line options are given
+///
+/// Note that the returned `PathBuf` may either specify an existing file to read
+/// or an unexisting file to be created.
+pub fn get_config_file_path<
+    CmdLineOptionsType: clap::Parser + CmdLineAndConfigIntegration<RootConfigType>,
+    RootConfigType: OgreRootConfig,
+>() -> PathBuf {
+
+    // Provides a configuration file name if none was specified in CLI.
+    // Priority goes for any existing files in the order presented in `CONFIG_SUFFIXES`
+    fn default_config_file_path() -> PathBuf {
+
+        const CONFIG_SUFFIXES: &[&str] = &[
+            ".config.ron",
+            ".config.yaml",
+        ];
+        let program_name = std::env::args().next()
+            .expect("Program name couldn't be retrieve from args. Please specify which configuration file to use via command line.")
+            .to_owned();
+
+        // first, try to find any existing file possibilities
+        for suffix in CONFIG_SUFFIXES {
+            let config_file_candidate = format!("{program_name}{suffix}");
+            let config_file_candidate = Path::new(&config_file_candidate);
+            // if it exists, return it
+            if config_file_candidate.exists() {
+                return config_file_candidate.to_path_buf()
+            }
+        }
+
+        // if no existing file was found, use the first in our priority list
+        let uncreated_config_file = format!("{program_name}{}", CONFIG_SUFFIXES[0]);
+        Path::new(&uncreated_config_file).to_path_buf()
+    }
+
+    let cmdline_options: CmdLineOptionsType = parse_cmdline_args();
+
+    cmdline_options
+        .config_file_path()
+        .map(Path::new)
+        .map(Path::to_path_buf)
+        .unwrap_or_else(default_config_file_path)
+
 }
 
 /// Parse the CLI options from the program's command line args.

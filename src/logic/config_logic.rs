@@ -1,5 +1,6 @@
 //! Operations for the program's config file
 
+use std::fmt::Debug;
 use crate::logic::serde::{AutomaticSerde, ConfigSerde};
 use crate::OgreRootConfig;
 use once_cell::sync::Lazy;
@@ -10,10 +11,10 @@ use std::path::Path;
 /// Loads the configuration from the given `config_file_path`
 /// or creates it (with default values & comments) if it doesn't exist
 pub async fn load_or_create_default<RootConfigType: OgreRootConfig>(
-    config_file_path: &str,
+    config_file_path: impl AsRef<Path> + Debug,
     tail_comments: &str,
 ) -> Result<RootConfigType, crate::Error> {
-    let config = load_from_file(config_file_path).await?;
+    let config = load_from_file(&config_file_path).await?;
     match config {
         Some(config) => Ok(config),
         None => {
@@ -29,33 +30,33 @@ pub async fn load_or_create_default<RootConfigType: OgreRootConfig>(
 pub async fn save_to_file(
     config: &impl OgreRootConfig,
     tail_comment: &str,
-    config_file_path: &str,
+    config_file_path: impl AsRef<Path> + Debug,
 ) -> Result<(), crate::Error> {
-    let Some(file_extension) = ext_with_dot(config_file_path) else {
+    let Some(file_extension) = ext_with_dot(&config_file_path) else {
         let cause = crate::Error::UnsupportedConfigFileFormat {
             message: "Config file without an extension is not supported".to_string(),
         };
         return Err(crate::Error::SavingConfig {
             message: format!(
-                "Error instantiating the automatic serde for file '{config_file_path}'"
+                "Error instantiating the automatic serde for file {config_file_path:?}"
             ),
             cause: Box::new(cause),
         });
     };
-    let txt_config = AutomaticSerde::for_file_extension(file_extension)
+    let txt_config = AutomaticSerde::for_file_extension(&file_extension)
         .map_err(|err| crate::Error::SavingConfig {
             message: format!(
-                "Error instantiating the automatic serde for file '{config_file_path}'"
+                "Error instantiating the automatic serde for file {config_file_path:?}"
             ),
             cause: Box::new(err),
         })?
         .serialize_config(config, tail_comment)
         .map_err(|err| crate::Error::SavingConfig {
-            message: format!("Error serializing config for saving into '{config_file_path}'"),
+            message: format!("Error serializing config for saving into {config_file_path:?}"),
             cause: Box::new(err),
         })?;
-    fs::write(config_file_path, &txt_config).map_err(|err| crate::Error::SavingConfig {
-        message: format!("Error saving config into '{config_file_path}'"),
+    fs::write(&config_file_path, &txt_config).map_err(|err| crate::Error::SavingConfig {
+        message: format!("Error saving config into {config_file_path:?}"),
         cause: Box::new(err),
     })?;
     Ok(())
@@ -63,20 +64,20 @@ pub async fn save_to_file(
 
 /// Returns `Ok(None)` if the file doesn't exist.
 async fn load_from_file<RootConfigType: OgreRootConfig>(
-    config_file_path: &str,
+    config_file_path: impl AsRef<Path> + Debug,
 ) -> Result<Option<RootConfigType>, crate::Error> {
-    let Some(file_extension) = ext_with_dot(config_file_path) else {
+    let Some(file_extension) = ext_with_dot(&config_file_path) else {
         let cause = crate::Error::UnsupportedConfigFileFormat {
             message: "Config file without an extension is not supported".to_string(),
         };
         return Err(crate::Error::LoadingConfig {
             message: format!(
-                "Error instantiating the automatic serde for file '{config_file_path}'"
+                "Error instantiating the automatic serde for file {config_file_path:?}"
             ),
             cause: Box::new(cause),
         });
     };
-    let txt_config_result = fs::read_to_string(config_file_path);
+    let txt_config_result = fs::read_to_string(&config_file_path);
     let txt_config = match txt_config_result {
         Ok(txt_config) => Ok(txt_config),
         Err(err) => {
@@ -84,31 +85,32 @@ async fn load_from_file<RootConfigType: OgreRootConfig>(
                 return Ok(None);
             }
             Err(crate::Error::LoadingConfig {
-                message: format!("Error loading config from '{config_file_path}'"),
+                message: format!("Error loading config from {config_file_path:?}"),
                 cause: Box::new(err),
             })
         }
     }?;
-    let config = AutomaticSerde::for_file_extension(file_extension)
+    let config = AutomaticSerde::for_file_extension(&file_extension)
         .map_err(|err| crate::Error::LoadingConfig {
             message: format!(
-                "Error instantiating the automatic serde for file '{config_file_path}'"
+                "Error instantiating the automatic serde for file {config_file_path:?}"
             ),
             cause: Box::new(err),
         })?
         .deserialize_config(&txt_config)
         .map_err(|err| crate::Error::LoadingConfig {
-            message: format!("Error deserializing config after loading from '{config_file_path}'"),
+            message: format!("Error deserializing config after loading from {config_file_path:?}"),
             cause: Box::new(err),
         })?;
     Ok(Some(config))
 }
 
-fn ext_with_dot(path: &str) -> Option<&str> {
-    Path::new(path)
+fn ext_with_dot(path: impl AsRef<Path>) -> Option<String> {
+    path.as_ref()
         .file_name()
         .and_then(|os| os.to_str())
         .and_then(|name| name.rfind('.').map(|idx| &name[idx..]))
+        .map(ToString::to_string)
 }
 
 //////////////
