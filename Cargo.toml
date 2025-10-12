@@ -24,7 +24,7 @@ clap = { version = "4", default-features = false, features = ["derive", "std"] }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 
 # supported config file formats
-ron = { version = "0.10", default-features = false, features = [] }
+ron = { version = "0.11", default-features = false, features = [] }
 serde_yaml = { version = "0.9", default-features = false }
 
 # source code docs extraction
