@@ -9,7 +9,8 @@ use encryptable_tokio_fs::fs;
 use once_cell::sync::Lazy;
 
 /// Loads the configuration from the given `config_file_path`
-/// or creates it (with default values & comments) if it doesn't exist
+/// or creates it (with default values & comments) if it doesn't exist.
+/// See also the low level [load_from_file()] and [save_to_file()].
 pub async fn load_or_create_default<RootConfigType: OgreRootConfig>(
     config_file_path: impl AsRef<Path> + Debug,
     tail_comments: &str,
@@ -26,7 +27,9 @@ pub async fn load_or_create_default<RootConfigType: OgreRootConfig>(
 }
 
 /// Saves the `config` to `config_file_path`,
-/// including documentation from the original [config_model] sources
+/// including the given `tail_documentation` at the end of the file
+/// (maybe gathered from the original [config_model] sources).
+/// See also the higher level [load_or_create_default()].
 pub async fn save_to_file(
     config: &impl OgreRootConfig,
     tail_comment: &str,
@@ -62,8 +65,10 @@ pub async fn save_to_file(
     Ok(())
 }
 
+/// Attempts to read & parse the configuration from the given `config_file_path`.
 /// Returns `Ok(None)` if the file doesn't exist.
-async fn load_from_file<RootConfigType: OgreRootConfig>(
+/// See also the higher level [load_or_create_default()].
+pub async fn load_from_file<RootConfigType: OgreRootConfig>(
     config_file_path: impl AsRef<Path> + Debug,
 ) -> Result<Option<RootConfigType>, crate::Error> {
     let Some(file_extension) = ext_with_dot(&config_file_path) else {
