@@ -16,21 +16,22 @@ license       = "Unlicense"
 
 [dependencies]
 
-tokio = { version = "1", features = ["fs"] }   # for file operations
+tokio = { version = "1", default-features = false }
+encryptable-tokio-fs = { version = "0.1", default-features = false }    # for file operations
 
 serde = { version = "1", default-features = false }
-clap = { version = "4", default-features = false, features = ["default", "derive"] }
+clap = { version = "4", default-features = false, features = ["derive", "std"] }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 
 # supported config file formats
-ron = { version = "0.10", default-features = false, features = ["default"] }
+ron = { version = "0.10", default-features = false, features = [] }
 serde_yaml = { version = "0.9", default-features = false }
 
 # source code docs extraction
 include_dir = { version = "0.7", default-features = false }
 regex = { version = "1", default-features = false }
-once_cell = { version = "1", default-features = false, features = ["default"] }
+once_cell = { version = "1", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }   # for file operations
-serde = { version = "1", default-features = false, features = ["derive"] }
+serde = { version = "1", features = ["derive"] }

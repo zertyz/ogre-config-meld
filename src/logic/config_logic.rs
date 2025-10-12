@@ -1,12 +1,12 @@
 //! Operations for the program's config file
 
 use std::fmt::Debug;
-use crate::logic::serde::{AutomaticSerde, ConfigSerde};
-use crate::OgreRootConfig;
-use once_cell::sync::Lazy;
-use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
+use crate::logic::serde::{AutomaticSerde, ConfigSerde};
+use crate::OgreRootConfig;
+use encryptable_tokio_fs::fs;
+use once_cell::sync::Lazy;
 
 /// Loads the configuration from the given `config_file_path`
 /// or creates it (with default values & comments) if it doesn't exist
@@ -55,7 +55,7 @@ pub async fn save_to_file(
             message: format!("Error serializing config for saving into {config_file_path:?}"),
             cause: Box::new(err),
         })?;
-    fs::write(&config_file_path, &txt_config).map_err(|err| crate::Error::SavingConfig {
+    fs::write(&config_file_path, &txt_config).await.map_err(|err| crate::Error::SavingConfig {
         message: format!("Error saving config into {config_file_path:?}"),
         cause: Box::new(err),
     })?;
@@ -77,7 +77,7 @@ async fn load_from_file<RootConfigType: OgreRootConfig>(
             cause: Box::new(cause),
         });
     };
-    let txt_config_result = fs::read_to_string(&config_file_path);
+    let txt_config_result = fs::read_to_string(&config_file_path).await;
     let txt_config = match txt_config_result {
         Ok(txt_config) => Ok(txt_config),
         Err(err) => {

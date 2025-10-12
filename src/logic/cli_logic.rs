@@ -1,10 +1,11 @@
 //! Operations for the program's Command Line Interface -- mostly delegated to `clap`
 
-use crate::{save_to_file, CmdLineAndConfigIntegration, OgreRootConfig};
-use clap::Parser;
 use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use crate::{save_to_file, CmdLineAndConfigIntegration, OgreRootConfig};
+use encryptable_tokio_fs::fs;
+use clap::Parser;
 
 /// Similarly to [parse_cmdline_args()],
 /// parse the CLI options from the program's command line args,
@@ -60,7 +61,7 @@ PREVIOUS CONFIG: {loaded_config:#?}
             .await?,
         );
 
-        tokio::fs::rename(&config_file_path, &backup_config_file_path).await
+        fs::rename(&config_file_path, &backup_config_file_path).await
             .map_err(|err| crate::Error::SavingConfig {
                 message: format!("Error rewriting the config file {config_file_path:?} with a new effective configuration: the file couldn't be renamed to {backup_config_file_path:?}"),
                 cause: err.into(),
