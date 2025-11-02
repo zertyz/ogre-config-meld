@@ -1,6 +1,6 @@
 [package]
 name = "ogre-config-meld"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
 description   = "Melds configs from files, env, and CLI into a clean, validated strong typed 'effective configuration'."
 keywords      = ["configuration"]
