@@ -46,7 +46,7 @@ pub trait CmdLineAndConfigIntegration<RootConfigType: OgreRootConfig>: clap::Par
 
     /// Given the specific `RootConfig` and `CmdLineOptionsType` types,
     /// allow the given `RootConfig` to be updated with the given command line options (from `self`)
-    fn merge_with_config(self, config: RootConfigType) -> RootConfigType;
+    fn merge_with_config(self, config: RootConfigType) -> Result<RootConfigType, Error>;
 }
 
 /// Error variants for the `cli-configs` trait
@@ -74,6 +74,9 @@ pub enum Error {
     Io {
         message: String,
         cause: std::io::Error,
+    },
+    MergingLogicViolation {
+        message: String,
     },
 }
 

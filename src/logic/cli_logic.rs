@@ -24,7 +24,7 @@ pub async fn parse_cmdline_and_merge_with_loaded_configs<
 
     let config_file_path = get_config_file_path::<CmdLineOptionsType, RootConfigType>();
     let loaded_config = super::load_or_create_default(&config_file_path, tail_docs).await?;
-    let effective_config = merge_cmdline_args_with_configs(cmdline_options, loaded_config);
+    let effective_config = merge_cmdline_args_with_configs(cmdline_options, loaded_config)?;
 
     if should_show_effective_config {
         eprintln!("EFFECTIVE PROGRAM CONFIGURATION: {effective_config:#?}\n");
@@ -139,6 +139,6 @@ pub fn merge_cmdline_args_with_configs<
 >(
     cmdline_options: CmdLineOptionsType,
     root_config: RootConfigType,
-) -> RootConfigType {
+) -> Result<RootConfigType, crate::Error> {
     cmdline_options.merge_with_config(root_config)
 }
